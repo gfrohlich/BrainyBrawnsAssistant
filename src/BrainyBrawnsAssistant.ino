@@ -29,14 +29,13 @@ uint16_t BNO_SAMPLE_RATE_DELAY_MS = 5; // delay between fresh samples
 //                                    id, address
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 
-void setup(void)
-{
+void setup(void) {
   Serial.begin(115200);
-  Serial.println("Orientation Sensor Test"); Serial.println("");
+  Serial.println("Orientation Sensor Test");
+  Serial.println("");
 
   // Initialise the sensor
-  if (!bno.begin())
-  {
+  if (!bno.begin()) {
     Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
     while (1);
   }
@@ -44,8 +43,7 @@ void setup(void)
   delay(100);
 }
 
-void loop(void)
-{
+void loop(void) {
   sensors_event_t accelerometerData;
   bno.getEvent(&accelerometerData, Adafruit_BNO055::VECTOR_ACCELEROMETER);
   printEvent(&accelerometerData);
@@ -53,17 +51,13 @@ void loop(void)
   delay(BNO_SAMPLE_RATE_DELAY_MS);
 }
 
-void printEvent(sensors_event_t* event) {
-  double x = -1000000, y = -1000000 , z = -1000000; //dumb values, easy to spot problem
+void printEvent(sensors_event_t *event) {
+  double x = -1000000, y = -1000000, z = -1000000; //dumb values, easy to spot problem
   if (event->type == SENSOR_TYPE_ACCELEROMETER) {
     x = event->acceleration.x;
     y = event->acceleration.y;
     z = event->acceleration.z;
   }
 
-  Serial.print(x);
-  Serial.print(" ");
-  Serial.print(y);
-  Serial.print(" ");
-  Serial.println(z);
+  Serial.println(x + ", " + y + ", " + z);
 }
