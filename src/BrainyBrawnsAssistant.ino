@@ -29,6 +29,49 @@ uint16_t BNO_SAMPLE_RATE_DELAY_MS = 5; // delay between fresh samples
 //                                    id, address
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 
+class AccelerometerEventBuffer {
+  int bufferSize;
+  sensors_event_t events[];
+
+  AccelerometerEventBuffer(int bufferSize) {
+    this.bufferSize = bufferSize;
+    this.events = new sensors_event_t[bufferSize];
+  }
+
+  void addEvent(sensors_event_t *event) {
+    for (int i = 0; i < this.bufferSize-1; i++) {
+      this.events[i] = this.events[i+1];
+    }
+    this.events[this.bufferSize-1] = &event;
+  }
+
+  double getAverageX() {
+    double sum = 0;
+    for (int i = 0; i < this.bufferSize; i++) {
+      sum += this.events[i]->acceleration.x;
+    }
+    return sum / this.bufferSize;
+  }
+
+  double getAverageY() {
+    double sum = 0;
+    for (int i = 0; i < this.bufferSize; i++) {
+      sum += this.events[i]->acceleration.y;
+    }
+    return sum / this.bufferSize;
+  }
+
+  double getAverageZ() {
+    double sum = 0;
+    for (int i = 0; i < this.bufferSize; i++) {
+      sum += this.events[i]->acceleration.z;
+    }
+    return sum / this.bufferSize;
+  }
+};
+
+AccelerometerEventBuffer buffer = new AccelerometerEventBuffer(10);
+
 void setup(void) {
   Serial.begin(115200);
   Serial.println("Orientation Sensor Test");
@@ -46,18 +89,16 @@ void setup(void) {
 void loop(void) {
   sensors_event_t accelerometerData;
   bno.getEvent(&accelerometerData, Adafruit_BNO055::VECTOR_ACCELEROMETER);
-  printEvent(&accelerometerData);
+  processAccelerometerEvent(&accelerometerData);
 
   delay(BNO_SAMPLE_RATE_DELAY_MS);
 }
 
-void printEvent(sensors_event_t *event) {
-  double x = -1000000, y = -1000000, z = -1000000; //dumb values, easy to spot problem
-  if (event->type == SENSOR_TYPE_ACCELEROMETER) {
-    x = event->acceleration.x;
-    y = event->acceleration.y;
-    z = event->acceleration.z;
-  }
+void processAccelerometerEvent(sensors_event_t *event) {
+  buffer.addEvent(&event);
+  double averageX = buffer.getAverageX();
+  double averageY = buffer.getAverageY();
+  double averageZ = buffer.getAverageZ();
 
-  Serial.println(x + ", " + y + ", " + z);
+  Serial.println(averageX + ", " + averageY + ", " + averageZ);
 }
