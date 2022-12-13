@@ -50,7 +50,9 @@ int currentAction = RESTING_BOTTOM;
 long flexStartTime;
 long flexDurations[100];
 int flexCount = 0;
+const int minFlexCount = 3; // number of flexes needed to establish flex duration baseline
 
+long averageFlexDuration = 2000;
 long flexTimeToFailure = 5000;
 
 bool isFailureAchieved = false;
@@ -138,9 +140,22 @@ void handleActionTransition() {
       long flexStopTime = millis();
       long flexDuration = flexStopTime - flexStartTime;
       flexDurations[flexCount++] = flexDuration;
+      if (flexCount >= minFlexCount) {
+        setFlexPace();
+      }
+
       checkFlexDuration(flexDuration);
       break;
   }
+}
+
+void setFlexPace() {
+  long sumFlexDurations = 0;
+  for (int i = 0; i < flexCount; i++) {
+    sumFlexDurations += flexDurations[i];
+  }
+  long averageFlexDuration = sumFlexDurations / flexCount;
+  flexTimeToFailure = (long) (averageFlexDuration * 2.5);
 }
 
 void checkFlexDuration(long flexDuration) {
