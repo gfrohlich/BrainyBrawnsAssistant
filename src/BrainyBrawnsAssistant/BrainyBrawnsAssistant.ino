@@ -29,37 +29,75 @@ uint16_t BNO_SAMPLE_RATE_DELAY_MS = 200; // delay between fresh samples
 //                                    id, address
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 
-void setup(void) {
+double max = 9.8;
+double min = -9.8;
+
+double upperBound = max * .7;
+double lowerBound = min * .7;
+
+enum Position {Top, Middle, Bottom};
+enum Action {RestingBottom, RestingTop, Lifting, Lowering};
+
+Position currentPosition = Bottom;
+Action currentAction;
+int currentPos = -1;
+int currentAct = 2;
+
+void setup() {
   Serial.begin(115200);
   Serial.println("Orientation Sensor Test");
   Serial.println("");
 
   // Initialise the sensor
   if (!bno.begin()) {
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    Serial.print("Oops, no BNO055 detected... Check your wiring or I2C ADDR!");
     while (1);
   }
 
   delay(100);
 }
 
-void loop(void) {
+void loop() {
   sensors_event_t accelerometerData;
   bno.getEvent(&accelerometerData, Adafruit_BNO055::VECTOR_ACCELEROMETER);
-  processAccelerometerEvent(&accelerometerData);
+  double x = accelerometerData.acceleration.x;
 
-  delay(BNO_SAMPLE_RATE_DELAY_MS);
-}
+  int previousPos = currentPos;
+  if (x > upperBound) {
+    currentPos = 1;
+    //currentPosition = Top;
+  } else if (x < lowerBound) {
+    currentPos = -1;
+    //currentPostion = Bottom;
+  } else {
+    currentPos = 0;
+    //currentPosition = Middle;
+  }
 
-void processAccelerometerEvent(sensors_event_t *event) {
-  double x = event->acceleration.x;
-  double y = event->acceleration.y;
-  double z = event->acceleration.z;
+  if (previousPos == -1 && currentPos == 0) {
+    currentAct = 4;
+  } else if (previousPos == 1 && currentPos == 0) {
+    currentAct = 3;
+  }
 
   Serial.print(x);
   Serial.print(", ");
-  Serial.print(y);
+  Serial.print(max);
   Serial.print(", ");
-  Serial.print(z);
+  Serial.print(min);
+  Serial.print(", ");
+  Serial.print(upperBound);
+  Serial.print(", ");
+  Serial.print(lowerBound);
+  Serial.print(", ");
+  Serial.print(currentPos);
+  Serial.print(", ");
+  Serial.print(currentAct);
+
   Serial.println();
+
+  delay(BNO_SAMPLE_RATE_DELAY_MS);
+
+
 }
+
