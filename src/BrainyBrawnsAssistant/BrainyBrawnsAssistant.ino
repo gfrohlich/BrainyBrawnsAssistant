@@ -89,6 +89,11 @@ void loop() {
   if (currentPosition == previousPosition) {
     currentAction = previousAction;
     // no action state transition to report
+    if (currentAction == LIFTING) {
+      // check for stall during lifting (timeout)
+      long flexTimeElapsed = millis() - flexStartTime;
+      checkFlexDuration(flexTimeElapsed);
+    }
   } else {
     if (previousPosition == BOTTOM && currentPosition == MIDDLE) {
       currentAction = LIFTING;
@@ -102,7 +107,7 @@ void loop() {
       currentAction = 12;  // something went wrong?
     }
     // report action state transition
-    handleAction();
+    handleActionTransition();
   }
 
   Serial.print(x);
@@ -124,12 +129,12 @@ void loop() {
   delay(BNO_SAMPLE_RATE_DELAY_MS);
 }
 
-void handleAction() {
-  switch (currentAction) {  // started lifting
-    case LIFTING:
+void handleActionTransition() {
+  switch (currentAction) {
+    case LIFTING: // started lifting from bottom
       flexStartTime = millis();
       break;
-    case RESTING_TOP:
+    case RESTING_TOP: // reached top
       long flexStopTime = millis();
       long flexDuration = flexStopTime - flexStartTime;
       flexDurations[flexCount++] = flexDuration;
