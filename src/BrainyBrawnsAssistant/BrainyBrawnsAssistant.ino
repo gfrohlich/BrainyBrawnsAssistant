@@ -35,13 +35,25 @@ double min = -9.8;
 double upperBound = max * .7;
 double lowerBound = min * .7;
 
-enum Position {Top, Middle, Bottom};
-enum Action {RestingBottom, RestingTop, Lifting, Lowering};
+const int BOTTOM = 0;
+const int MIDDLE = 1;
+const int TOP = 2;
 
-Position currentPosition = Bottom;
-Action currentAction;
-int currentPos = -1;
-int currentAct = 2;
+const int RESTING_BOTTOM = 3;
+const int LIFTING = 5;
+const int RESTING_TOP = 6;
+const int LOWERING = 4;
+
+int currentPosition = BOTTOM;
+int currentAction = RESTING_BOTTOM;
+
+long flexStartTime;
+long flexDurations[100];
+int flexCount = 0;
+
+long flexTimeToFailure = 5000;
+
+bool isFailureAchieved = false;
 
 void setup() {
   Serial.begin(115200);
@@ -58,26 +70,39 @@ void setup() {
 }
 
 void loop() {
+  if (isFailureAchieved) return;
+
   sensors_event_t accelerometerData;
   bno.getEvent(&accelerometerData, Adafruit_BNO055::VECTOR_ACCELEROMETER);
   double x = accelerometerData.acceleration.x;
 
-  int previousPos = currentPos;
+  int previousPosition = currentPosition;
   if (x > upperBound) {
-    currentPos = 1;
-    //currentPosition = Top;
+    currentPosition = TOP;
   } else if (x < lowerBound) {
-    currentPos = -1;
-    //currentPostion = Bottom;
+    currentPosition = BOTTOM;
   } else {
-    currentPos = 0;
-    //currentPosition = Middle;
+    currentPosition = MIDDLE;
   }
 
-  if (previousPos == -1 && currentPos == 0) {
-    currentAct = 4;
-  } else if (previousPos == 1 && currentPos == 0) {
-    currentAct = 3;
+  int previousAction = currentAction;
+  if (currentPosition == previousPosition) {
+    currentAction = previousAction;
+    // no action state transition to report
+  } else {
+    if (previousPosition == BOTTOM && currentPosition == MIDDLE) {
+      currentAction = LIFTING;
+    } else if (previousPosition == MIDDLE && currentPosition == TOP) {
+      currentAction = RESTING_TOP;
+    } else if (previousPosition == TOP && currentPosition == MIDDLE) {
+      currentAction = LOWERING;
+    } else if (previousPosition == MIDDLE && currentPosition == BOTTOM) {
+      currentAction = RESTING_BOTTOM;
+    } else {
+      currentAction = 12;  // something went wrong?
+    }
+    // report action state transition
+    handleAction();
   }
 
   Serial.print(x);
@@ -90,14 +115,31 @@ void loop() {
   Serial.print(", ");
   Serial.print(lowerBound);
   Serial.print(", ");
-  Serial.print(currentPos);
+  Serial.print(currentPosition);
   Serial.print(", ");
-  Serial.print(currentAct);
+  Serial.print(currentAction);
 
   Serial.println();
 
   delay(BNO_SAMPLE_RATE_DELAY_MS);
-
-
 }
 
+void handleAction() {
+  switch (currentAction) {  // started lifting
+    case LIFTING:
+      flexStartTime = millis();
+      break;
+    case RESTING_TOP:
+      long flexStopTime = millis();
+      long flexDuration = flexStopTime - flexStartTime;
+      flexDurations[flexCount++] = flexDuration;
+      checkFlexDuration(flexDuration);
+      break;
+  }
+}
+
+void checkFlexDuration(long flexDuration) {
+  if (flexDuration > flexTimeToFailure) {
+    isFailureAchieved = true;
+  }
+}
