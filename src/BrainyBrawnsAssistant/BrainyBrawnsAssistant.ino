@@ -23,7 +23,7 @@
    Connect GROUND to common ground
 */
 
-uint16_t BNO_SAMPLE_RATE_DELAY_MS = 5; // delay between fresh samples
+uint16_t BNO_SAMPLE_RATE_DELAY_MS = 200; // delay between fresh samples
 
 // Check I2C device address and correct line below (by default address is 0x29 or 0x28)
 //                                    id, address
