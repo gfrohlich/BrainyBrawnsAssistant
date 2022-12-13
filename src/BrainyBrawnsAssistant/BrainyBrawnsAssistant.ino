@@ -29,50 +29,6 @@ uint16_t BNO_SAMPLE_RATE_DELAY_MS = 5; // delay between fresh samples
 //                                    id, address
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 
-class AccelerometerEventBuffer {
-  public:
-    int bufferSize;
-    sensors_event_t *events[10];
-  
-    AccelerometerEventBuffer(int bufferSize) {
-      this->bufferSize = bufferSize;
-      this->events = new sensors_event_t[bufferSize];
-    }
-  
-    void addEvent(sensors_event_t *event) {
-      for (int i = 0; i < this->bufferSize-1; i++) {
-        this->events[i] = this->events[i+1];
-      }
-      this->events[this->bufferSize-1] = &event;
-    }
-  
-    double getAverageX() {
-      double sum = 0;
-      for (int i = 0; i < this->bufferSize; i++) {
-        sum += this->events[i]->acceleration.x;
-      }
-      return sum / this->bufferSize;
-    }
-  
-    double getAverageY() {
-      double sum = 0;
-      for (int i = 0; i < this->bufferSize; i++) {
-        sum += this->events[i]->acceleration.y;
-      }
-      return sum / this->bufferSize;
-    }
-  
-    double getAverageZ() {
-      double sum = 0;
-      for (int i = 0; i < this->bufferSize; i++) {
-        sum += this->events[i]->acceleration.z;
-      }
-      return sum / this->bufferSize;
-    }
-};
-
-AccelerometerEventBuffer buffer = new AccelerometerEventBuffer(10);
-
 void setup(void) {
   Serial.begin(115200);
   Serial.println("Orientation Sensor Test");
@@ -96,15 +52,14 @@ void loop(void) {
 }
 
 void processAccelerometerEvent(sensors_event_t *event) {
-  buffer.addEvent(&event);
-  double averageX = buffer.getAverageX();
-  double averageY = buffer.getAverageY();
-  double averageZ = buffer.getAverageZ();
+  double x = event->acceleration.x;
+  double y = event->acceleration.y;
+  double z = event->acceleration.z;
 
-  Serial.print(averageX);
+  Serial.print(x);
   Serial.print(", ");
-  Serial.print(averageY);
+  Serial.print(y);
   Serial.print(", ");
-  Serial.print(averageZ);
+  Serial.print(z);
   Serial.println();
 }
